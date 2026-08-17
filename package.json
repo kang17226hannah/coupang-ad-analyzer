@@ -1,13 +1,13 @@
 {
   "name": "coupang-ad-analyzer",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test src/analysis.test.js"
+    "test": "node --test src/*.test.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "4.3.4",
