@@ -12,6 +12,7 @@ export function calculateSourcing({ cost, feeRate, growthFee, targetMargin }) {
   const growthCash = growth * 1.1;
   const margin = salePrice - c - feeCash - growthCash;
   const marginRate = salePrice ? margin / salePrice * 100 : 0;
-  const minimumRoa = margin > 0 ? salePrice * 1.1 / margin * 100 : 0;
+  // 최소 ROAS는 실제 지출 광고비(VAT 포함)를 분모로 보는 손익분기 기준입니다.
+  const minimumRoa = margin > 0 ? salePrice / margin * 100 : 0;
   return { salePrice, feeCash, growthCash, margin, marginRate, minimumRoa };
 }
