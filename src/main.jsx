@@ -4,9 +4,10 @@ import * as XLSX from 'xlsx';
 import { actionStatus, classify, DEFAULT_SETTINGS, funnelDiagnosis, groupRows, leakLevel, metrics, normalizeRow, placementCategory, profitabilityStatus } from './analysis';
 import { compareValue, productComparison, saveWeek, STORAGE, weekRange } from './weekly';
 import { sampleRows } from './sample';
+import SourcingCalculator from './SourcingCalculator';
 import './styles.css';
 
-const nav=[['dashboard','▦','주간 대시보드'],['weekly','⇄','상품 주간 비교'],['leak','⌁','누수 키워드'],['hero','✦','효자 키워드'],['product','◇','상품 진단'],['placement','▤','지면 분석'],['rows','☷','행별 진단'],['master','□','상품 마스터'],['settings','⚙','설정']];
+const nav=[['dashboard','▦','주간 대시보드'],['weekly','⇄','상품 주간 비교'],['leak','⌁','누수 키워드'],['hero','✦','효자 키워드'],['product','◇','상품 진단'],['placement','▤','지면 분석'],['rows','☷','행별 진단'],['master','□','상품 마스터'],['sourcing','⌗','소싱 계산기'],['settings','⚙','설정']];
 const won=n=>`${Math.round(n||0).toLocaleString('ko-KR')}원`, pct=n=>`${(n||0).toFixed(1)}%`, number=n=>Math.round(n||0).toLocaleString('ko-KR');
 const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}};
 function Delta({now,before,inverse=false,format=pct}){const d=compareValue(now,before), good=d.direction==='same'?null:(d.direction==='down')===inverse;return <small className={`delta ${good===true?'good-text':good===false?'bad-text':''}`}>{d.direction==='up'?'▲':d.direction==='down'?'▼':'―'} {d.rate===null?'신규':pct(Math.abs(d.rate))} <span>({format(d.difference)})</span></small>}
@@ -28,18 +29,19 @@ function App(){
  const comparisons=useMemo(()=>productComparison(rows,previousRows,settings),[rows,previousRows,settings]);
  const flash=t=>{setNotice(t);setTimeout(()=>setNotice(''),3000)};
  const importRows=parsed=>{if(!parsed.length)throw Error('데이터가 없습니다.');setRows(parsed);setUploadOpen(false);flash(`${parsed.length}개 행을 불러왔습니다.`)};
- const importWorkbook=async file=>{try{if(file.size>20*1024*1024)throw Error('20MB 이하 파일만 가능합니다.');const wb=XLSX.read(await file.arrayBuffer());importRows(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map(normalizeRow))}catch(e){flash(`업로드 실패: ${e.message}`)}};
+ const importWorkbook=async file=>{try{if(file.size>20*1024*1024)throw Error('20MB 이하 파일만 가능합니다.');const match=file.name.match(/_(\d{8})_(\d{8})(?:\.[^.]+)?$/);globalThis.__coupangReportContext=match?{start:`${match[1].slice(0,4)}-${match[1].slice(4,6)}-${match[1].slice(6,8)}`,end:`${match[2].slice(0,4)}-${match[2].slice(4,6)}-${match[2].slice(6,8)}`} : {};const wb=XLSX.read(await file.arrayBuffer());importRows(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map(normalizeRow))}catch(e){flash(`업로드 실패: ${e.message}`)}finally{delete globalThis.__coupangReportContext}};
  const parseRaw=()=>{try{const text=raw.trim();if(!text)return;const delim=text.includes('\t')?'\t':',';const lines=text.split(/\r?\n/).map(l=>l.split(delim)),headers=lines.shift();importRows(lines.filter(x=>x.some(Boolean)).map((line,i)=>normalizeRow(Object.fromEntries(headers.map((h,j)=>[h.trim(),line[j]?.trim()])),i)))}catch{flash('RAW 데이터 형식을 확인해주세요.')}};
  const saveCurrent=()=>{const next=saveWeek(weeks,rows);setWeeks(next);flash(`${next[0].label} 데이터를 저장했습니다.`)};
  const title=nav.find(n=>n[0]===page)?.[2];
+ const headerText=page==='sourcing'?'원가를 넣고 목표 마진별 판매가와 최소 ROAS를 빠르게 계산하세요.':'이번 주 성과를 확인하고 다음 주 운영 액션을 결정하세요.';
  return <div className="app"><aside><div className="brand"><div className="logo">C</div><div><b>쿠팡 광고 분석기</b><small>WEEKLY AD OPS</small></div></div><nav>{nav.map(([id,icon,label])=><button className={page===id?'active':''} onClick={()=>setPage(id)} key={id}><span>{icon}</span>{label}{id==='leak'&&<em>{keywords.filter(k=>leakLevel(k,settings).rank>=2).length}</em>}</button>)}</nav><div className="side-help"><b>매주 광고를 점검하세요</b><p>보고서를 올리고 지난주 대비 변화와 다음 액션을 확인하세요.</p><button onClick={()=>setUploadOpen(true)}>데이터 업로드</button></div><div className="version">v2.0 · 데이터는 브라우저에만 저장</div></aside>
- <main><header><div><h1>{title}</h1><p>이번 주 성과를 확인하고 다음 주 운영 액션을 결정하세요.</p></div><div className="head-actions"><button className="save-week" onClick={saveCurrent}>＋ 이번 주 데이터 저장</button><button className="upload" onClick={()=>setUploadOpen(true)}>↑ 데이터 업로드</button></div></header>
+ <main><header><div><h1>{title}</h1><p>{headerText}</p></div>{page!=='sourcing'&&<div className="head-actions"><button className="save-week" onClick={saveCurrent}>＋ 이번 주 데이터 저장</button><button className="upload" onClick={()=>setUploadOpen(true)}>↑ 데이터 업로드</button></div>}</header>
  {page==='dashboard'&&<Dashboard m={m} pm={pm} products={products} comparisons={comparisons} rows={rows} settings={settings} master={master} previous={previous} weeks={weeks} previousId={previousId} setPreviousId={setPreviousId} setPage={setPage}/>}
  {page==='weekly'&&<Weekly comparisons={comparisons} master={master} settings={settings} notes={notes} setNotes={setNotes} currentLabel={weekRange(rows)} previous={previous}/>}
  {page==='leak'&&<Leak groups={keywords} settings={settings}/>} {page==='hero'&&<ListPage title="효자 키워드" hint={`실제 ROAS가 목표 ${settings.targetRoa}% 이상인 키워드`} groups={keywords.filter(k=>k.orders>0&&k.actualRoa>=settings.targetRoa)} first="효자 키워드"/>}
  {page==='product'&&<ProductDiagnosis comparisons={comparisons} settings={settings} master={master}/>} {page==='placement'&&<Placement rows={rows} settings={settings}/>}
  {page==='rows'&&<Rows rows={rows.filter(r=>[r.keyword,r.product,r.placement].some(v=>v.toLowerCase().includes(query.toLowerCase())))} query={query} setQuery={setQuery} settings={settings}/>}
- {page==='master'&&<Master comparisons={comparisons} master={master} setMaster={setMaster} settings={settings}/>} {page==='settings'&&<Settings value={settings} setValue={setSettings} weeks={weeks} deleteWeek={id=>setWeeks(weeks.filter(w=>w.id!==id))}/>} </main>{notice&&<div className="toast">✓ {notice}</div>}
+ {page==='master'&&<Master comparisons={comparisons} master={master} setMaster={setMaster} settings={settings}/>} {page==='sourcing'&&<SourcingCalculator/>} {page==='settings'&&<Settings value={settings} setValue={setSettings} weeks={weeks} deleteWeek={id=>setWeeks(weeks.filter(w=>w.id!==id))}/>} </main>{notice&&<div className="toast">✓ {notice}</div>}
  {uploadOpen&&<Upload close={()=>setUploadOpen(false)} fileRef={fileRef} importWorkbook={importWorkbook} raw={raw} setRaw={setRaw} parseRaw={parseRaw} sample={()=>{setRows(sampleRows);setUploadOpen(false);flash('샘플 데이터를 불러왔습니다.')}}/>}</div>
 }
 
