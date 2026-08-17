@@ -12,7 +12,6 @@ function reportPeriodFromFileName(name = '') {
   return { start: fmt(match[1]), end: fmt(match[2]) };
 }
 
-// 쿠팡 광고보고서는 행 안에 기간 컬럼이 없는 경우가 있어 파일명(A..._YYYYMMDD_YYYYMMDD.xlsx)에서 기간을 보존합니다.
 if (typeof File !== 'undefined' && File.prototype?.arrayBuffer && !File.prototype.__coupangPeriodPatched) {
   const originalArrayBuffer = File.prototype.arrayBuffer;
   Object.defineProperty(File.prototype, '__coupangPeriodPatched', { value: true, configurable: true });
@@ -29,7 +28,6 @@ const aliases = {
   keyword: ['키워드', '검색어', 'keyword'],
   placement: ['광고 노출 지면', '노출지면', '지면', 'placement'],
   impressions: ['노출수', 'impressions'], clicks: ['클릭수', 'clicks'], cost: ['광고비', '총 비용', '비용', 'cost'],
-  // 쿠팡 광고센터 기본 성과는 14일 전환 기준을 우선 사용합니다. 14일 컬럼이 없으면 1일 컬럼으로 대체합니다.
   orders: ['총 주문수(14일)', '총 주문수(1일)', '주문수', '구매수', 'orders'],
   sales: ['총 전환매출액(14일)', '총 전환매출액(1일)', '광고 전환 매출액', '전환매출', '매출액', 'sales'],
   orders1d: ['총 주문수(1일)'], orders14d: ['총 주문수(14일)'],
@@ -88,10 +86,9 @@ export function funnelDiagnosis(row, settings = DEFAULT_SETTINGS) {
 
 export function profitabilityStatus(actualRoa, requiredRoa, settings = DEFAULT_SETTINGS) {
   if (!requiredRoa) return { label: '기준 미설정', level: 'normal' };
-  const ratio = (actualRoa - requiredRoa) / requiredRoa * 100;
-  if (ratio >= settings.roaComfortRate) return { label: '여유 있음', level: 'good' };
-  if (actualRoa >= requiredRoa * (1 - settings.roaComfortRate / 100)) return { label: '경계', level: 'warn' };
-  return { label: '수익성 주의', level: 'danger' };
+  if (actualRoa < requiredRoa) return { label: '최소 ROAS 미달', level: 'danger' };
+  if (actualRoa < requiredRoa * (1 + settings.roaComfortRate / 100)) return { label: '기준 통과', level: 'warn' };
+  return { label: '여유 있음', level: 'good' };
 }
 
 export function actionStatus(row, requiredRoa, settings = DEFAULT_SETTINGS) {
@@ -108,7 +105,6 @@ export function actionStatus(row, requiredRoa, settings = DEFAULT_SETTINGS) {
 export function placementCategory(name = '') {
   const value = String(name).toLowerCase();
   if (value.includes('오디언스')) return '오디언스 플러스';
-  // '비검색' 안에 '검색'이 포함되므로 반드시 비검색을 먼저 판별합니다.
   if (value.includes('비검색') || value.includes('상품') || value.includes('발견')) return '비검색';
   if (value.includes('검색')) return '검색';
   return '기타';
@@ -120,7 +116,7 @@ export function groupRows(rows, key, settings = DEFAULT_SETTINGS) {
 export function classify(row, settings = DEFAULT_SETTINGS) {
   const m = metrics([row], settings);
   if (row.cost > 0 && row.orders === 0) return { level: 'danger', label: '누수', message: '비용이 발생했지만 주문이 없습니다.' };
-  if (m.roa >= settings.targetRoa && row.orders > 0) return { level: 'good', label: '효자', message: '목표 ROAS를 달성했습니다.' };
+  if (m.actualRoa >= settings.targetRoa && row.orders > 0) return { level: 'good', label: '효자', message: '실제 ROAS가 목표를 달성했습니다.' };
   if (row.impressions > 100 && m.ctr < 0.3) return { level: 'warn', label: '소재 개선', message: '노출 대비 클릭률이 낮습니다.' };
   return { level: 'normal', label: '관찰', message: '데이터를 더 수집해 보세요.' };
 }
