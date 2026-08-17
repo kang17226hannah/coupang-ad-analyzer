@@ -23,7 +23,7 @@ describe('weekly comparison and storage models',()=>{
  it('prefers report period metadata when the report has no daily date column',()=>assert.equal(weekRange([row({date:'2026-08-17',periodStart:'2026-08-01',periodEnd:'2026-08-17'})]),'2026-08-01 ~ 2026-08-17'));
 });
 describe('configurable weekly decisions',()=>{
- it('compares required ROAS with configurable comfort band',()=>{assert.equal(profitabilityStatus(700,500,DEFAULT_SETTINGS).label,'여유 있음');assert.equal(profitabilityStatus(480,500,DEFAULT_SETTINGS).label,'경계');assert.equal(profitabilityStatus(200,500,DEFAULT_SETTINGS).label,'수익성 주의')});
+ it('treats required ROAS as a hard minimum with a comfort band above it',()=>{assert.equal(profitabilityStatus(700,500,DEFAULT_SETTINGS).label,'여유 있음');assert.equal(profitabilityStatus(520,500,DEFAULT_SETTINGS).label,'기준 통과');assert.equal(profitabilityStatus(480,500,DEFAULT_SETTINGS).label,'최소 ROAS 미달')});
  it('suggests expansion when conversions beat required ROAS',()=>assert.equal(actionStatus(row({clicks:40,sales:200000}),500,DEFAULT_SETTINGS).label,'확대 검토'));
  it('suggests reduction for expensive zero-order traffic',()=>assert.equal(actionStatus(row({clicks:40,orders:0,sales:0,cost:40000}),500,DEFAULT_SETTINGS).label,'광고 축소 검토'));
  it('classifies all three leak stages from settings',()=>{assert.equal(leakLevel(row({clicks:3,cost:1000,orders:0}),DEFAULT_SETTINGS).label,'관찰');assert.equal(leakLevel(row({clicks:12,cost:1000,orders:0}),DEFAULT_SETTINGS).label,'누수 의심');assert.equal(leakLevel(row({clicks:35,cost:1000,orders:0}),DEFAULT_SETTINGS).label,'누수 높음')});
