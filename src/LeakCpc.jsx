@@ -31,10 +31,11 @@ export default function LeakCpc({ rows, settings, master }) {
 
   const visible=groups.filter(g=>{
     const zeroLeak=g.orders===0&&leakLevel(g,settings).rank>0;
+    const missingMargin=g.orders>0&&!g.margin;
     const cpcOver=g.orders>0&&g.breakEvenCpc!==null&&g.cpc>g.breakEvenCpc;
     if(mode==='zero') return zeroLeak;
     if(mode==='cpc') return cpcOver;
-    return zeroLeak||cpcOver;
+    return zeroLeak||cpcOver||missingMargin;
   });
 
   return <section className="panel page-panel cpc-page">
