@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateSourcing } from './SourcingCalculator.jsx';
+import { calculateSourcing } from './sourcing.js';
 
 describe('sourcing calculator', () => {
   it('matches the existing sheet 50% target example', () => {
