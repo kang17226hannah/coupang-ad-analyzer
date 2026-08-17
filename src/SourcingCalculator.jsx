@@ -21,6 +21,7 @@ export default function SourcingCalculator({ onAddToMaster }) {
       productId: productId.trim(),
       name: name.trim(),
       requiredRoa: Number(result.minimumRoa.toFixed(1)),
+      contributionMargin: Number(result.margin.toFixed(0)),
       cost: Number(cost) || 0,
       salePrice: result.salePrice,
       targetMargin,
@@ -33,7 +34,7 @@ export default function SourcingCalculator({ onAddToMaster }) {
       <div>
         <span className="eyebrow sourcing-eyebrow">모바일 소싱용 간편 계산기</span>
         <h2>원가만 넣고 판매가·마진·최소 ROAS를 빠르게 확인하세요.</h2>
-        <p>기존 시트 계산방식을 그대로 적용합니다. 판매수수료와 그로스비에는 VAT 10%가 반영됩니다.</p>
+        <p>판매수수료와 그로스비에는 VAT 10%가 반영됩니다. 최소 ROAS도 실제 광고비(VAT 포함) 기준입니다.</p>
       </div>
     </section>
 
@@ -53,15 +54,15 @@ export default function SourcingCalculator({ onAddToMaster }) {
         <div className="sourcing-card-head"><div><small>목표 마진율</small><div className="target-input"><input type="number" inputMode="numeric" value={targetMargin} onChange={e=>changeTarget(index,e.target.value)} /><span>%</span></div></div><strong>{result ? won(result.salePrice) : '—'}</strong></div>
         <div className="sourcing-metrics">
           <div><small>추천 판매가</small><b>{result ? won(result.salePrice) : '—'}</b></div>
-          <div><small>예상 마진</small><b>{result ? won(result.margin) : '—'}</b></div>
+          <div><small>광고 전 개당 마진</small><b>{result ? won(result.margin) : '—'}</b></div>
           <div><small>실제 마진율</small><b>{result ? pct(result.marginRate) : '—'}</b></div>
-          <div className="minimum-roa"><small>최소 ROAS</small><b>{result ? pct(result.minimumRoa) : '—'}</b></div>
+          <div className="minimum-roa"><small>최소 실제 ROAS</small><b>{result ? pct(result.minimumRoa) : '—'}</b></div>
         </div>
         <button className={`master-add ${savedIndex===index?'saved':''}`} disabled={!result || !name.trim()} onClick={()=>saveToMaster(index,targetMargin,result)}>{savedIndex===index?'✓ 상품 마스터에 저장됨':'＋ 상품 마스터에 추가'}</button>
         {!name.trim()&&<small className="master-add-hint">상품명을 입력하면 저장할 수 있습니다.</small>}
         {result && <details><summary>계산 내역 보기</summary><p>판매수수료(VAT 포함) {won(result.feeCash)} · 그로스비(VAT 포함) {won(result.growthCash)}</p></details>}
       </article>)}
     </section>
-    <p className="sourcing-note">판매가는 목표 마진을 충족하도록 100원 단위로 올림합니다. 실제 쿠팡 수수료·물류비는 상품별로 다를 수 있으니 입력값을 맞춰 사용하세요.</p>
+    <p className="sourcing-note">판매가는 목표 마진을 충족하도록 100원 단위로 올림합니다. 최소 실제 ROAS와 광고 판단은 실제 지출 광고비(VAT 포함) 기준입니다.</p>
   </div>;
 }
