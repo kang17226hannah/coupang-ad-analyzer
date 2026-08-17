@@ -5,14 +5,28 @@ import './sourcing.css';
 const won = n => `${Math.round(n || 0).toLocaleString('ko-KR')}원`;
 const pct = n => `${(n || 0).toFixed(1)}%`;
 
-export default function SourcingCalculator() {
+export default function SourcingCalculator({ onAddToMaster }) {
   const [name, setName] = useState('');
+  const [productId, setProductId] = useState('');
   const [cost, setCost] = useState(2300);
   const [feeRate, setFeeRate] = useState(10.8);
   const [growthFee, setGrowthFee] = useState(3000);
   const [targets, setTargets] = useState([50, 40, 30]);
+  const [savedIndex, setSavedIndex] = useState(null);
   const results = useMemo(() => targets.map(targetMargin => ({ targetMargin, result: calculateSourcing({ cost, feeRate, growthFee, targetMargin }) })), [cost, feeRate, growthFee, targets]);
-  const changeTarget = (index, value) => setTargets(targets.map((v, i) => i === index ? Number(value) : v));
+  const changeTarget = (index, value) => { setSavedIndex(null); setTargets(targets.map((v, i) => i === index ? Number(value) : v)); };
+  const saveToMaster = (index, targetMargin, result) => {
+    if (!result || !onAddToMaster || !name.trim()) return;
+    onAddToMaster({
+      productId: productId.trim(),
+      name: name.trim(),
+      requiredRoa: Number(result.minimumRoa.toFixed(1)),
+      cost: Number(cost) || 0,
+      salePrice: result.salePrice,
+      targetMargin,
+    });
+    setSavedIndex(index);
+  };
 
   return <div className="sourcing-page">
     <section className="panel sourcing-intro">
@@ -24,12 +38,13 @@ export default function SourcingCalculator() {
     </section>
 
     <section className="panel sourcing-inputs">
-      <div className="panel-title"><div><h2>기본값 입력</h2><p>상품명은 메모용이라 비워도 됩니다.</p></div></div>
+      <div className="panel-title"><div><h2>기본값 입력</h2><p>상품 마스터에 저장하려면 상품명을 입력하세요. 옵션ID는 아직 없으면 비워도 됩니다.</p></div></div>
       <div className="sourcing-form">
-        <label><span>상품명 / 키워드</span><input value={name} onChange={e=>setName(e.target.value)} placeholder="예: 실리콘 배수구 덮개" /></label>
-        <label><span>원가</span><div className="unit-input"><input type="number" inputMode="numeric" value={cost} onChange={e=>setCost(e.target.value)} /><em>원</em></div></label>
-        <label><span>판매수수료</span><div className="unit-input"><input type="number" inputMode="decimal" step="0.1" value={feeRate} onChange={e=>setFeeRate(e.target.value)} /><em>%</em></div></label>
-        <label><span>그로스비</span><div className="unit-input"><input type="number" inputMode="numeric" value={growthFee} onChange={e=>setGrowthFee(e.target.value)} /><em>원</em></div></label>
+        <label className="sourcing-name"><span>상품명 / 키워드</span><input value={name} onChange={e=>{setName(e.target.value);setSavedIndex(null)}} placeholder="예: 실리콘 배수구 덮개" /></label>
+        <label className="sourcing-id"><span>상품ID / 옵션ID (선택)</span><input value={productId} onChange={e=>{setProductId(e.target.value);setSavedIndex(null)}} placeholder="등록 전이면 비워두기" /></label>
+        <label><span>원가</span><div className="unit-input"><input type="number" inputMode="numeric" value={cost} onChange={e=>{setCost(e.target.value);setSavedIndex(null)}} /><em>원</em></div></label>
+        <label><span>판매수수료</span><div className="unit-input"><input type="number" inputMode="decimal" step="0.1" value={feeRate} onChange={e=>{setFeeRate(e.target.value);setSavedIndex(null)}} /><em>%</em></div></label>
+        <label><span>그로스비</span><div className="unit-input"><input type="number" inputMode="numeric" value={growthFee} onChange={e=>{setGrowthFee(e.target.value);setSavedIndex(null)}} /><em>원</em></div></label>
       </div>
     </section>
 
@@ -42,6 +57,8 @@ export default function SourcingCalculator() {
           <div><small>실제 마진율</small><b>{result ? pct(result.marginRate) : '—'}</b></div>
           <div className="minimum-roa"><small>최소 ROAS</small><b>{result ? pct(result.minimumRoa) : '—'}</b></div>
         </div>
+        <button className={`master-add ${savedIndex===index?'saved':''}`} disabled={!result || !name.trim()} onClick={()=>saveToMaster(index,targetMargin,result)}>{savedIndex===index?'✓ 상품 마스터에 저장됨':'＋ 상품 마스터에 추가'}</button>
+        {!name.trim()&&<small className="master-add-hint">상품명을 입력하면 저장할 수 있습니다.</small>}
         {result && <details><summary>계산 내역 보기</summary><p>판매수수료(VAT 포함) {won(result.feeCash)} · 그로스비(VAT 포함) {won(result.growthCash)}</p></details>}
       </article>)}
     </section>
