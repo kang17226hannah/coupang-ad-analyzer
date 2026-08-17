@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import './sourcing.css';
 
 const won = n => `${Math.round(n || 0).toLocaleString('ko-KR')}원`;
 const pct = n => `${(n || 0).toFixed(1)}%`;
