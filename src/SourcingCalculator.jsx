@@ -42,7 +42,7 @@ export default function SourcingCalculator({ onAddToMaster }) {
       <div className="panel-title"><div><h2>기본값 입력</h2><p>상품 마스터에 저장하려면 상품명을 입력하세요. 옵션ID는 아직 없으면 비워도 됩니다.</p></div></div>
       <div className="sourcing-form">
         <label className="sourcing-name"><span>상품명 / 키워드</span><input value={name} onChange={e=>{setName(e.target.value);setSavedIndex(null)}} placeholder="예: 실리콘 배수구 덮개" /></label>
-        <label className="sourcing-id"><span>상품ID / 옵션ID (선택)</span><input value={productId} onChange={e=>{setProductId(e.target.value);setSavedIndex(null)}} placeholder="등록 전이면 비워두기" /></label>
+        <label className="sourcing-id"><span>옵션ID (선택)</span><input value={productId} onChange={e=>{setProductId(e.target.value);setSavedIndex(null)}} placeholder="등록 전이면 비워두기" /></label>
         <label><span>원가</span><div className="unit-input"><input type="number" inputMode="numeric" value={cost} onChange={e=>{setCost(e.target.value);setSavedIndex(null)}} /><em>원</em></div></label>
         <label><span>판매수수료</span><div className="unit-input"><input type="number" inputMode="decimal" step="0.1" value={feeRate} onChange={e=>{setFeeRate(e.target.value);setSavedIndex(null)}} /><em>%</em></div></label>
         <label><span>그로스비</span><div className="unit-input"><input type="number" inputMode="numeric" value={growthFee} onChange={e=>{setGrowthFee(e.target.value);setSavedIndex(null)}} /><em>원</em></div></label>

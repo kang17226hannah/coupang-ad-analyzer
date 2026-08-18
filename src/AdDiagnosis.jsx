@@ -22,7 +22,7 @@ function diagnose(c, master, settings){
 
   let kind='neutral', group='stable', badges=['유지'], diagnosis='현재 손익 기준을 충족하고 있습니다.', actions=['성과 유지','주간 추이 확인'];
   if(resolution.status==='ambiguous'){
-    kind='info';group='insufficient';badges=['마진 연결 필요','판단 보류'];diagnosis='동일 상품명이 있어 상품ID 연결이 필요합니다.';actions=['상품ID 연결','상품 마스터 확인'];
+    kind='info';group='insufficient';badges=['마진 연결 필요','판단 보류'];diagnosis='동일 상품명이 있어 옵션ID 연결이 필요합니다.';actions=['옵션ID 연결','상품 마스터 확인'];
   }else if(!enoughClicks || !enoughImpressions){
     kind='info';group='insufficient';badges=['판단 보류'];diagnosis='데이터가 부족해 판단을 보류합니다.';actions=['데이터 수집','노출 추이 확인'];
   }else if(!margin){
@@ -63,7 +63,7 @@ export default function AdDiagnosis({comparisons,master,settings}){
         const cpcText=x.resolution.status==='ambiguous'?'마진 연결 필요':!x.margin?'마진 입력 필요':x.cpcOver?'손익 기준 초과':'허용 범위';
         const roaText=x.now.actualRoa<x.required?'최소 미달':'기준 충족';
         return <article key={x.productId} className={`ad-diagnosis-card ${x.kind}`}>
-          <div className="ad-card-head"><div><small>{x.productId}</small><h3>{x.product}</h3></div><div className="ad-status-badges">{x.badges.slice(0,2).map(label=><span key={label}>{label}</span>)}</div></div>
+          <div className="ad-card-head"><div><small>옵션ID {x.productId}</small><h3>{x.product}</h3></div><div className="ad-status-badges">{x.badges.slice(0,2).map(label=><span key={label}>{label}</span>)}</div></div>
           <div className="ad-metrics">
             <div><small>CTR</small><b>{pct(x.now.ctr)}</b><em>{ctrText}</em></div>
             <div><small>CVR</small><b>{pct(x.now.cvr)}</b><em>{cvrText}</em></div>
