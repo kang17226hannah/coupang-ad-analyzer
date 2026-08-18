@@ -40,6 +40,7 @@ export function normalizeRow(row, index = 0) {
   const product = get('product') || '미지정 상품';
   const reportContext = globalThis.__coupangReportContext || {};
   const explicitDate = get('date');
+  const keywordValue = String(get('keyword') || '').trim();
   return {
     id: index + 1,
     date: explicitDate || reportContext.end || '',
@@ -47,7 +48,7 @@ export function normalizeRow(row, index = 0) {
     periodEnd: reportContext.end || explicitDate || '',
     productId: String(get('productId') || product),
     product,
-    keyword: get('keyword') || '(검색어 없음)',
+    keyword: !keywordValue || keywordValue === '-' ? '(검색어 없음)' : keywordValue,
     placement: get('placement') || '기타',
     impressions: num(get('impressions')),
     clicks: num(get('clicks')),
