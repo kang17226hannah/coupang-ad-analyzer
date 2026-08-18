@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { actionStatus, DEFAULT_SETTINGS, funnelDiagnosis, leakLevel, metrics, normalizeRow, placementCategory, profitabilityStatus } from './analysis.js';
+import { actionStatus, DEFAULT_SETTINGS, funnelDiagnosis, leakLevel, metrics, normalizeRow, placementCategory, productContributionMargin, productMarginResolution, profitabilityStatus } from './analysis.js';
 import { compareValue, productComparison, saveWeek, weekRange } from './weekly.js';
 const row=(extra={})=>({id:1,date:'2026-08-10',periodStart:'2026-08-10',periodEnd:'2026-08-10',productId:'P1',product:'상품 A',keyword:'검색어',placement:'검색 영역',impressions:1000,clicks:20,cost:10000,orders:2,sales:100000,orders1d:0,orders14d:0,sales1d:0,sales14d:0,...extra});
 describe('v1 regression: import and core analysis',()=>{
@@ -12,6 +12,7 @@ describe('v1 regression: import and core analysis',()=>{
 });
 describe('real Coupang report parsing',()=>{
  it('uses option ID and 14-day conversion columns from the actual report format',()=>{const r=normalizeRow({'광고집행 옵션ID':'123456','광고집행 상품명':'상품 A','총 주문수(1일)':2,'총 주문수(14일)':5,'총 전환매출액(1일)':20000,'총 전환매출액(14일)':50000,'광고비':10000,'광고 노출 지면':'비검색 영역'});assert.equal(r.productId,'123456');assert.equal(r.orders,5);assert.equal(r.sales,50000);assert.equal(r.orders1d,2);assert.equal(r.orders14d,5);assert.equal(r.sales1d,20000);assert.equal(r.sales14d,50000)});
+ it('also accepts the spaced 광고집행 옵션 ID header',()=>assert.equal(normalizeRow({'광고집행 옵션 ID':'987654','광고집행 상품명':'상품 B'}).productId,'987654'));
  it('falls back to 1-day conversion columns when 14-day columns are absent',()=>{const r=normalizeRow({'총 주문수(1일)':3,'총 전환매출액(1일)':30000});assert.equal(r.orders,3);assert.equal(r.sales,30000)});
  it('classifies 비검색 영역 before matching the substring 검색',()=>assert.equal(placementCategory('비검색 영역'),'비검색'));
 });
@@ -29,4 +30,9 @@ describe('configurable weekly decisions',()=>{
  it('classifies all three leak stages from settings',()=>{assert.equal(leakLevel(row({clicks:3,cost:1000,orders:0}),DEFAULT_SETTINGS).label,'관찰');assert.equal(leakLevel(row({clicks:12,cost:1000,orders:0}),DEFAULT_SETTINGS).label,'누수 의심');assert.equal(leakLevel(row({clicks:35,cost:1000,orders:0}),DEFAULT_SETTINGS).label,'누수 높음')});
  it('separates search, non-search, audience plus and other placements',()=>{assert.equal(placementCategory('검색 영역'),'검색');assert.equal(placementCategory('비검색 영역'),'비검색');assert.equal(placementCategory('오디언스 플러스'),'오디언스 플러스');assert.equal(placementCategory('브랜드 영역'),'기타')});
  it('diagnoses the product funnel using settings',()=>assert.equal(funnelDiagnosis(row({clicks:30,orders:0,sales:0}),DEFAULT_SETTINGS).label,'전환 개선 필요'));
+});
+describe('product margin matching',()=>{
+ it('prioritizes exact productId over duplicate product names',()=>{const master={'P1':{name:'동일 상품',contributionMargin:1000},'P2':{name:'동일 상품',contributionMargin:2000}};assert.equal(productContributionMargin(master,'P2','동일 상품'),2000);assert.equal(productMarginResolution(master,'P2','동일 상품').matchedBy,'productId')});
+ it('falls back only when the exact product name is unique',()=>{const master={'P1':{name:'고유 상품',contributionMargin:3000}};assert.equal(productContributionMargin(master,'UNKNOWN','고유 상품'),3000);assert.equal(productMarginResolution(master,'UNKNOWN','고유 상품').matchedBy,'productName')});
+ it('defers when duplicate product names are ambiguous',()=>{const master={'P1':{name:'동일 상품',contributionMargin:1000},'P2':{name:'동일 상품',contributionMargin:2000}};assert.equal(productMarginResolution(master,'UNKNOWN','동일 상품').status,'ambiguous');assert.equal(productContributionMargin(master,'UNKNOWN','동일 상품'),null)});
 });
