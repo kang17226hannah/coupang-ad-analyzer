@@ -23,7 +23,7 @@ if (typeof File !== 'undefined' && File.prototype?.arrayBuffer && !File.prototyp
 
 const aliases = {
   date: ['날짜', '일자', 'date'],
-  productId: ['광고집행 옵션ID', '광고전환매출발생 옵션ID', '상품ID', '상품 아이디', '광고집행 상품 ID', 'productId'],
+  productId: ['광고집행 옵션ID', '광고집행 옵션 ID', '광고전환매출발생 옵션ID', '상품ID', '상품 아이디', '광고집행 상품 ID', 'productId'],
   product: ['광고집행 상품명', '상품명', 'product'],
   keyword: ['키워드', '검색어', 'keyword'],
   placement: ['광고 노출 지면', '노출지면', '지면', 'placement'],
@@ -113,6 +113,37 @@ export function groupRows(rows, key, settings = DEFAULT_SETTINGS) {
   const groups = Object.groupBy ? Object.groupBy(rows, r => r[key]) : rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
   return Object.entries(groups).map(([name, items]) => ({ name, count: items.length, ...metrics(items, settings) })).sort((a, b) => b.cost - a.cost);
 }
+
+const itemProductId = item => String(item?.productId ?? item?.id ?? '');
+const itemProductName = item => String(item?.productName ?? item?.product ?? item?.name ?? '');
+function masterRecords(master) {
+  if (Array.isArray(master)) return master.map((item, index) => ({ item, index, collectionKey: null, objectKey: null }));
+  if (!master || typeof master !== 'object') return [];
+  const nested = ['items', 'products'].flatMap(collectionKey => Array.isArray(master[collectionKey])
+    ? master[collectionKey].map((item, index) => ({ item, index, collectionKey, objectKey: null }))
+    : []);
+  const keyed = Object.entries(master)
+    .filter(([key, item]) => !['items', 'products'].includes(key) && item && typeof item === 'object' && !Array.isArray(item))
+    .map(([objectKey, item]) => ({ item, index: null, collectionKey: null, objectKey }));
+  return [...nested, ...keyed];
+}
+
+export function productMarginResolution(master, productId, productName = '') {
+  const id = String(productId || ''), name = String(productName || '');
+  const records = masterRecords(master);
+  const exactId = records.find(record => id && (itemProductId(record.item) === id || record.objectKey === id));
+  if (exactId) return { status: 'matched', entry: exactId.item, record: exactId, matchedBy: 'productId' };
+  const nameMatches = records.filter(record => name && (itemProductName(record.item) === name || record.objectKey === name));
+  if (nameMatches.length === 1) return { status: 'matched', entry: nameMatches[0].item, record: nameMatches[0], matchedBy: 'productName' };
+  if (nameMatches.length > 1) return { status: 'ambiguous', entry: undefined, record: undefined, matchedBy: null };
+  return { status: 'missing', entry: undefined, record: undefined, matchedBy: null };
+}
+
+export function productContributionMargin(master, productId, productName = '') {
+  const margin = Number(productMarginResolution(master, productId, productName).entry?.contributionMargin);
+  return margin > 0 ? margin : null;
+}
+
 export function classify(row, settings = DEFAULT_SETTINGS) {
   const m = metrics([row], settings);
   if (row.cost > 0 && row.orders === 0) return { level: 'danger', label: '누수', message: '비용이 발생했지만 주문이 없습니다.' };
