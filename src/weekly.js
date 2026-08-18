@@ -53,3 +53,24 @@ export function productComparison(currentRows, previousRows, settings) {
   const names = Object.fromEntries(currentRows.map(r => [r.productId, r.product]));
   return current.map(now => ({ productId: now.name, product: names[now.name] || now.name, now, before: previous.find(p => p.name === now.name) || metrics([], settings) }));
 }
+
+// v2.2 이전에 이미 불러온 실제 광고 데이터는 sourceFiles 메타데이터가 없습니다.
+// 새 분석기간 업로드 시 기존 데이터가 휘발되지 않도록 한 번만 레거시 출처를 만들어 둡니다.
+if (typeof localStorage !== 'undefined' && !localStorage.getItem(STORAGE.currentFiles)) {
+  try {
+    const legacyRows = JSON.parse(localStorage.getItem('coupang-rows') || 'null');
+    const looksLikeBuiltInSample = Array.isArray(legacyRows)
+      && legacyRows.length === 10
+      && legacyRows.every(r => /^P00[1-3]$/.test(String(r?.productId || '')))
+      && !legacyRows.some(r => r?.periodStart || r?.periodEnd || r?.sourceFile);
+    if (Array.isArray(legacyRows) && legacyRows.length && !looksLikeBuiltInSample) {
+      localStorage.setItem(STORAGE.currentFiles, JSON.stringify([{
+        key: 'legacy-current-data',
+        name: '기존 불러온 광고 데이터',
+        size: 0,
+        period: reportPeriod(legacyRows),
+        legacy: true,
+      }]));
+    }
+  } catch {}
+}
